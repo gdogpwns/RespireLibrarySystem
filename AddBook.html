@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Book</title>
+</head>
+<body>
+<?php
+
+<form action="AddBook.php" method="post">
+ISBN : <input type="text" name="ISBN"/>
+<input type ="submit" value="Insert" name="inserttb"/>
+</form>
+
+<?php
+    include 'Database.php';
+
+    if(isset($_POST['inserttb'])){ //things to do, once the "submit" key is hit
+        $ISBN=$_POST['ISBN'];//get form ISBN attribute
+        $book_data = getJSON($ISBN);
+        $result = addBookToDB($book_data);
+        echo "Hey, that tickles!";
+    }
+?>
+
+
+</body>
+</html>
