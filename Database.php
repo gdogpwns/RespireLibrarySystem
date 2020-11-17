@@ -104,13 +104,13 @@ function addStudentToDB($ID_number, $name){
 
 // checkOut(ISBN, ID_number)
 // Parameter: Takes in the ID_number and ISBN of book to be checked out
-// Returns: Adds book and ID_number to checked_out in database
+// Returns: Adds book, ID_number, and 3 weeks from current date to checked_out in database
 //          Reduces the number of amt_available in book by 1
 
 function checkOut($ISBN, $ID_number) {
     $conn = makeDBConn();
-
-    $sql1 = "INSERT INTO checked_out VALUES ('$ISBN', '$ID_number')";
+    // sql1 adds ISBN, ID_number, and three weeks from current date to checked_out
+    $sql1 = "INSERT INTO checked_out VALUES ('$ISBN', '$ID_number', DATE_ADD(CURRENT_DATE, INTERVAL 3 WEEK))";
     $result1 = $conn->query($sql1);
 
     $sql2 = "UPDATE book SET amt_available = amt_available - 1 where amt_available > 0 AND ISBN = $ISBN";
@@ -129,5 +129,19 @@ function checkIn($ISBN, $ID_number) {
 
     $sql2 = "UPDATE book SET amt_available = amt_available + 1 where amt_available < amt_total AND ISBN = $ISBN";
     $result2 = $conn->query($sql2);
+}
+
+// getOverdue()
+// Returns: mysqli object with all ISBN, ID_number, and due_date from checked_out
+// and name from joined student table if CURRENT_DATE > due_date
+function getOverdue() {
+    $conn = makeDBConn();
+
+    $sql = "SELECT * 
+            FROM checked_out 
+            LEFT JOIN student s on s.ID_number = checked_out.ID_number
+            WHERE CURRENT_DATE > due_date";
+
+    return $conn->query($sql);
 }
 ?>
