@@ -7,9 +7,17 @@ function makeDBConn() {
     BEGIN SQL CONNECTION
     */
     // Provide SQL info
+    /*
     $servername = "localhost";
-    $username = "root";
-    $password = "";
+    $username = "librarian";
+    $password = "Haiti!";
+    $dbname = "library";
+    */
+    session_start();
+
+    $servername = "localhost";
+    $username = $_SESSION['username'];
+    $password = $_SESSION['password'];
     $dbname = "library";
 
     // Create SQL connection
@@ -18,6 +26,9 @@ function makeDBConn() {
     // Check connection
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
+    }
+    else{
+        echo "$username logged in<br>";
     }
     return $conn;
 }
@@ -59,9 +70,9 @@ function addBookToDB($book) {
 
     $ISBN = $book->isbn13;
     $title = $book->title_long;
-    $author = null;
+    $author = NULL;
     if (isset($book->authors)) {$author = $book->authors[0];} // Store only the first author of the book if multiple
-    $genre = null;
+    $genre = NULL;
     if (isset($book->subjects)) {$genre = $book->subjects[0];} // Store only the first genre of the book if multiple
     $publisher = $book->publisher;
 
@@ -74,13 +85,24 @@ function addBookToDB($book) {
         $amt_available = $amt_arr["amt_available"] + 1;
         $sql = "UPDATE book SET amt_total = $amt_total, amt_available = $amt_available WHERE ISBN = $ISBN";
     }
-    else {$sql = "INSERT INTO book VALUES ('$ISBN', '$title', '$author', '$genre', '$publisher', 1, 1)";}
+
+    // Can't figure out how to put NULL variable into SQL query because it likes to convert it to
+    // an empty string. This is my solution. Not proud of it, but PHP eludes me.
+    else {
+        if (is_null($genre)) { // there HAS to be a more elegant way to do this
+            $sql = "INSERT INTO book VALUES ('$ISBN', '$title', '$author', NULL, '$publisher', 1, 1)";}
+        else {
+            $sql = "INSERT INTO book VALUES ('$ISBN', '$title', '$author', '$genre', '$publisher', 1, 1)";}
+    }
 
     $result = $conn->query($sql);
 
     if($result) //if the insert into database was successful
     {
         echo "Book inserted successfully";
+    }
+    else{
+        echo "Book insert FAILED";
     }
     return $result;
 
@@ -109,12 +131,18 @@ function addStudentToDB($ID_number, $name){
 
 function checkOut($ISBN, $ID_number) {
     $conn = makeDBConn();
+    $ISBN = getJSON($ISBN)->isbn13; // converts ISBN10 to ISBN13 if need be
     // sql1 adds ISBN, ID_number, and three weeks from current date to checked_out
     $sql1 = "INSERT INTO checked_out VALUES ('$ISBN', '$ID_number', DATE_ADD(CURRENT_DATE, INTERVAL 3 WEEK))";
     $result1 = $conn->query($sql1);
 
     $sql2 = "UPDATE book SET amt_available = amt_available - 1 where amt_available > 0 AND ISBN = $ISBN";
     $result2 = $conn->query($sql2);
+
+    if($result2) // if the insert into the database was successful
+    {
+        echo "Book checked out successfully";
+    }
 }
 
 // checkOut(ISBN, ID_number)
@@ -123,12 +151,18 @@ function checkOut($ISBN, $ID_number) {
 //          Increments the number of amt_available in book by 1
 function checkIn($ISBN, $ID_number) {
     $conn = makeDBConn();
+    $ISBN = getJSON($ISBN)->isbn13; // converts ISBN10 to ISBN13 if need be
 
     $sql1 = "DELETE FROM checked_out WHERE ISBN = $ISBN AND ID_number = $ID_number";
     $result1 = $conn->query($sql1);
 
     $sql2 = "UPDATE book SET amt_available = amt_available + 1 where amt_available < amt_total AND ISBN = $ISBN";
     $result2 = $conn->query($sql2);
+
+    if($result2) {
+        echo "Book checked in successfully";
+    }
+
 }
 
 // getOverdue()
@@ -141,6 +175,20 @@ function getOverdue() {
             FROM checked_out 
             LEFT JOIN student s on s.ID_number = checked_out.ID_number
             WHERE CURRENT_DATE > due_date";
+
+    return $conn->query($sql);
+}
+
+// getCheckedOut($ID_number)
+// Parameter: Takes in the ID_number of the student whose records you want
+// Returns: mysqli object with all ISBN and due_date from checked_out
+function getCheckedOut($ID_number) {
+    $conn = makeDBConn();
+
+    $sql = "SELECT checked_out.ISBN, title, author, due_date
+            FROM checked_out 
+            LEFT JOIN book b on b.ISBN = checked_out.ISBN
+            WHERE checked_out.ID_number = $ID_number";
 
     return $conn->query($sql);
 }

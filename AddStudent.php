@@ -6,4 +6,5 @@ $name = $_POST["name"];
 
 addStudentToDB($ID_number, $name);
 
-
+header("Refresh: 2; URL=http://localhost/AddStudent.html");
+die();
