@@ -105,7 +105,6 @@ function addBookToDB($book) {
         echo "Book insert FAILED";
     }
     return $result;
-
 }
 
 // addStudentToDB(ID_number, name)
@@ -128,7 +127,6 @@ function addStudentToDB($ID_number, $name){
 // Parameter: Takes in the ID_number and ISBN of book to be checked out
 // Returns: Adds book, ID_number, and 3 weeks from current date to checked_out in database
 //          Reduces the number of amt_available in book by 1
-
 function checkOut($ISBN, $ID_number) {
     $conn = makeDBConn();
     $ISBN = getJSON($ISBN)->isbn13; // converts ISBN10 to ISBN13 if need be
@@ -136,12 +134,17 @@ function checkOut($ISBN, $ID_number) {
     $sql1 = "INSERT INTO checked_out VALUES ('$ISBN', '$ID_number', DATE_ADD(CURRENT_DATE, INTERVAL 3 WEEK))";
     $result1 = $conn->query($sql1);
 
+    if($result1) // if the insert into the database was successful
+    {
+        echo "due_date updated in checked_out<br>";
+    }
+
     $sql2 = "UPDATE book SET amt_available = amt_available - 1 where amt_available > 0 AND ISBN = $ISBN";
     $result2 = $conn->query($sql2);
 
     if($result2) // if the insert into the database was successful
     {
-        echo "Book checked out successfully";
+        echo "Book checked out successfully<br>";
     }
 }
 
@@ -156,11 +159,15 @@ function checkIn($ISBN, $ID_number) {
     $sql1 = "DELETE FROM checked_out WHERE ISBN = $ISBN AND ID_number = $ID_number";
     $result1 = $conn->query($sql1);
 
+    if($result1) {
+        echo "Book removed from checked_out<br>";
+    }
+
     $sql2 = "UPDATE book SET amt_available = amt_available + 1 where amt_available < amt_total AND ISBN = $ISBN";
     $result2 = $conn->query($sql2);
 
     if($result2) {
-        echo "Book checked in successfully";
+        echo "amt_available and amt_total restored<br>";
     }
 
 }
@@ -191,5 +198,50 @@ function getCheckedOut($ID_number) {
             WHERE checked_out.ID_number = $ID_number";
 
     return $conn->query($sql);
+}
+
+// removeBook($ISBN)
+// Parameter: Takes in the ISBN of book to be removed from DB
+// Returns: nothing, but removes ALL instances of book from DB in both book and checked_out
+// explanation for this in report
+function removeBook($ISBN) {
+    $conn = makeDBConn();
+    $ISBN = getJSON($ISBN)->isbn13; // converts ISBN10 to ISBN13 if need be
+
+    $sql1 = "DELETE FROM checked_out WHERE ISBN = $ISBN";
+    $result1 = $conn->query($sql1);
+
+    if($result1) {
+        echo "Book successfully removed from checked_out <br>";
+    }
+
+    $sql2 = "DELETE FROM book WHERE ISBN = $ISBN";
+    $result2 = $conn->query($sql2);
+
+    if($result2) {
+        echo "Book successfully removed from book <br>";
+    }
+
+}
+
+// removeStudent($ID_number)
+// Parameter: Takes in the ID_number of the student to be removed from the DB
+// Returns: nothing, but removes ALL instances of student from DB in both student and checked_out
+function removeStudent($ID_number) {
+    $conn = makeDBConn();
+
+    $sql1 = "DELETE FROM checked_out WHERE ID_number = $ID_number";
+    $result1 = $conn->query($sql1);
+
+    if($result1) {
+        echo "Student successfully removed from checked_out <br>";
+    }
+
+    $sql2 = "DELETE FROM student WHERE ID_number = $ID_number";
+    $result2 = $conn->query($sql2);
+
+    if($result2) {
+        echo "Student successfully removed from student <br>";
+    }
 }
 ?>
